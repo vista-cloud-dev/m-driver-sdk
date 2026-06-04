@@ -36,6 +36,28 @@ func TestCaps_OmitsUnwiredAxes(t *testing.T) {
 	}
 }
 
+func TestM1Shapes_JSONTags(t *testing.T) {
+	// These shapes are the cross-driver contract m-cli reads; pin their JSON.
+	checks := []struct {
+		v    any
+		want string
+	}{
+		{Check{Name: "binary", OK: true}, `{"name":"binary","ok":true}`},
+		{DoctorResult{Transport: "local", OK: true, Checks: []Check{}}, `{"transport":"local","ok":true,"checks":[]}`},
+		{StateResult{State: "started"}, `{"state":"started"}`},
+		{Status{Transport: "docker", Running: true, Healthy: true, LatencyMs: 3}, `{"transport":"docker","running":true,"healthy":true,"latencyMs":3}`},
+	}
+	for _, c := range checks {
+		b, err := json.Marshal(c.v)
+		if err != nil {
+			t.Fatalf("marshal %T: %v", c.v, err)
+		}
+		if string(b) != c.want {
+			t.Errorf("%T JSON = %s, want %s", c.v, b, c.want)
+		}
+	}
+}
+
 func TestAxes_WiredOrderAndSkipsEmpty(t *testing.T) {
 	a := Axes{Meta: []string{"caps"}, Lifecycle: []string{"up", "down"}}
 	w := a.Wired()
