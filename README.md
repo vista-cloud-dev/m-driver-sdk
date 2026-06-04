@@ -11,6 +11,16 @@ It was extracted at the **Phase-0 reconciliation checkpoint** by freezing the tw
 driver `Transport` sketches against one interface — see
 [`phase-0-reconciliation.md`](../docs/m-engine-drivers/phase-0-reconciliation.md).
 
+## Orchestration
+
+This repo is the **owner and orchestrator** of the m-engine-drivers implementation. Cross-repo
+status and the protocols that keep m-ydb + m-iris parallel and consistent live here:
+
+- [`docs/implementation-tracker.md`](docs/implementation-tracker.md) — the single source of truth
+  for per-repo, per-milestone status. Reconcile it on every cross-repo change.
+- [`docs/prompts/continue-implementation.md`](docs/prompts/continue-implementation.md) — paste into
+  a fresh session to resume work.
+
 ## What's in it
 
 | Symbol | Purpose |
