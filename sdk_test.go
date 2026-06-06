@@ -58,6 +58,33 @@ func TestM1Shapes_JSONTags(t *testing.T) {
 	}
 }
 
+func TestCoverResult_JSONTag(t *testing.T) {
+	// The `cover trace` payload (driver-contract.md §5.5) — the shape m-cli reads
+	// identically from m-ydb (view "TRACE":1:"^ycov") and m-iris
+	// (%Monitor.System.LineByLine) to aggregate LCOV and apply --min-percent.
+	// Pin its JSON so the two drivers cannot drift.
+	cr := CoverResult{
+		LCOV:         "TN:\nSF:MATH.m\nDA:1,1\nLF:2\nLH:1\nend_of_record\n",
+		CoveredLines: 1,
+		TotalLines:   2,
+		LinePercent:  50,
+	}
+	b, err := json.Marshal(cr)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	want := `{"lcov":"TN:\nSF:MATH.m\nDA:1,1\nLF:2\nLH:1\nend_of_record\n","coveredLines":1,"totalLines":2,"linePercent":50}`
+	if string(b) != want {
+		t.Errorf("CoverResult JSON = %s, want %s", b, want)
+	}
+	// Counts always render — a zero is meaningful (0% covered is a fact, not
+	// absence), the same convention as Status.LatencyMs and Features flags.
+	z, _ := json.Marshal(CoverResult{})
+	if string(z) != `{"lcov":"","coveredLines":0,"totalLines":0,"linePercent":0}` {
+		t.Errorf("zero CoverResult must render all fields: %s", z)
+	}
+}
+
 func TestAxes_WiredOrderAndSkipsEmpty(t *testing.T) {
 	a := Axes{Meta: []string{"caps"}, Lifecycle: []string{"up", "down"}}
 	w := a.Wired()

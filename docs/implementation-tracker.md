@@ -10,7 +10,8 @@ three repos must reconcile here: when you land work, update the tables below in 
 > first, both drivers pin the same SDK version, and every stage is validated against BOTH real
 > engines.
 
-Last reconciled: **2026-06-04** (m-ydb M2 `sync` + M3 `exec` complete; next M5 cover / M4 data).
+Last reconciled: **2026-06-06** (SDK M5 `CoverResult` shape defined on `coordination`,
+gates green, untagged — staged for the v0.3.0 release that unblocks M5 cover on both drivers).
 
 Legend: ☑ done · ◐ in progress / partial · ☐ not started · — n/a · 🔒 gated (needs a resource)
 
@@ -41,7 +42,7 @@ the shared shape/seam each milestone needs (defined once, consumed by both drive
 | **M2** | `sync` (source axis) | — (filesystem / Atelier; no shared payload) | ☑ full axis (list/pull/status/verify/diff/push/deploy/rm + bare-name `--filter`, filesystem-native over `$ydb_routines`; push conflict-checked, deploy `--prune` common-prefix guard) | ◐ verbs exist (list/pull/status/verify/push/deploy); add diff/rm + bare-name `--filter` |
 | **M3** | `exec` (load/run/eval/abort) + `engineError` | ☑ `ExecRequest`/`ExecResult`, `EngineError`, `LoadRequest`/`LoadResult` | ☑ load/run/eval/abort + engineError (runtime via $ETRAP→$ZSTATUS over `%XCMD`; compile via ZLINK stderr listing; ephemeral `--prefix`; real r2.07) | ◐ remote substrate spike ☑ (real IRIS); wire exec/eval/abort commands |
 | **M4** | `data` (get/set/kill/query/export/import) | ☑ `GlobalRef`/`GlobalNode`, `SetGlobal` (export/import shape TBD) | ☐ | ☐ |
-| **M5** | `cover` (trace → LCOV) | ☐ LCOV result shape TBD | ☐ | ☐ |
+| **M5** | `cover` (trace → LCOV) | ◐ `CoverResult` (lcov/coveredLines/totalLines/linePercent) defined on `coordination`, untagged | ☐ | ☐ |
 | **M6** | `admin` (backup/restore/check/journal) | ☐ neutral result shape TBD | ☐ | ☐ |
 | **M7** | `native` passthrough (full backend surface) | — (per-engine; not in contract) | ☐ | ☐ |
 | **M8** | conformance green on all transports + CI matrix | ☐ `m-driver-conformance` (component D5) | ☐ | ☐ |
@@ -63,7 +64,7 @@ after M0. (m-ydb: no `remote`. m-iris: `remote` attach-mode — provision/destro
 | `EngineError` | v0.1.0 | §7 fault; clikit keeps its own copy for the envelope (drivers convert at the boundary) |
 | `Caps`/`Axes`/`Features`, transport consts, `FakeTransport` | v0.1.0 | `Axes` is struct+omitempty (honest caps) |
 | `Axes.Wired()`, `Check`, `DoctorResult`, `Status`, `StateResult` | **v0.2.0** | M1 doctor + lifecycle payloads |
-| LCOV/coverage result shape | — | **pending (M5)** |
+| `CoverResult` (lcov/coveredLines/totalLines/linePercent) | **v0.3.0 (staged)** | M5 cover payload (contract §5.5); on `coordination`, untagged. No new Transport verb — driver composes `Exec`+`ReadGlobal` |
 | admin result shape | — | **pending (M6)** |
 
 **Versioning / repin protocol:** add types/fields → minor bump; change/remove → major (contract §8).
@@ -102,8 +103,14 @@ bare-name `--filter`; regroup is done) and **M3 exec** (wire run/eval/abort onto
 runner substrate; also build local/docker `iris session` transports). Granular tasks: plan §5.
 Open: PR #1 (m-iris-driver → main) — merge when ready.
 
-**m-driver-sdk (orchestrator)** — define the M5 (LCOV) and M6 (admin) shared shapes when those
-milestones start; keep this tracker + the contract reconciled; own `m-driver-conformance` (D5).
+**m-driver-sdk (orchestrator)** — M5 (LCOV) shared shape **DONE on `coordination`** (untagged):
+`CoverResult{lcov,coveredLines,totalLines,linePercent}` in `cover.go` (contract §5.5), gates green
+(`go test -race`, vet, gofmt). No new Transport verb — `cover trace` composes the existing
+`Exec`+`ReadGlobal` (YDB `view "TRACE"`→`zwrite ^ycov`; IRIS monitor→runner). NEXT (user-gated
+release ceremony): merge `coordination`→`main`, `git tag v0.3.0` + push tag, then repin BOTH drivers
+(`go get …@v0.3.0` → tidy → test) — this unblocks **M5 cover** on m-ydb and m-iris. Still pending:
+define the M6 (admin) shape when that milestone starts; keep this tracker + the contract reconciled;
+own `m-driver-conformance` (D5).
 
 ---
 
