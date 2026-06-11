@@ -132,8 +132,11 @@ func (s *suite) call(ctx context.Context, label string, args ...string) *Envelop
 	if env.OK != (env.Exit == 0) {
 		problems = append(problems, fmt.Sprintf("ok=%v inconsistent with exit=%d", env.OK, env.Exit))
 	}
-	if !env.OK && env.Error == nil {
-		problems = append(problems, "ok=false but no error object")
+	// A non-ok envelope must explain itself — via an error object (the Fail path)
+	// OR a data payload (the doctor/lint "data + non-zero exit" report). Bare
+	// ok=false with neither is unexplained.
+	if !env.OK && env.Error == nil && len(env.Data) == 0 {
+		problems = append(problems, "ok=false but neither error nor data")
 	}
 	if len(problems) > 0 {
 		s.fail(label+": envelope", strings.Join(problems, "; "))

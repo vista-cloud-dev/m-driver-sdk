@@ -117,6 +117,33 @@ func TestRun_EmptyAdvertisedAxis(t *testing.T) {
 	mustFail(t, rep, "caps: no empty axes")
 }
 
+// An ok=false envelope that carries its result in data (no error object) is
+// valid — the doctor/lint "data + non-zero exit" pattern. It must NOT trip the
+// envelope discipline.
+func TestRun_OkFalseWithDataIsValid(t *testing.T) {
+	d := goodDriver()
+	doctor := `{"transport":"local","ok":false,"checks":[{"name":"binary","ok":false}]}`
+	e := Envelope{SchemaVersion: "1.0", Command: "meta doctor", OK: false, Exit: 6, Data: json.RawMessage(doctor)}
+	b, _ := json.Marshal(e)
+	d.envelopes["meta doctor"] = RawResult{Stdout: b, Exit: 6}
+	rep := Run(context.Background(), d.runner(), "local")
+	for _, r := range rep.Results {
+		if r.Name == "doctor: envelope" && !r.Pass {
+			t.Fatalf("doctor: envelope failed on a valid ok=false+data report: %s", r.Detail)
+		}
+	}
+}
+
+// An ok=false envelope with NEITHER error nor data is unexplained → must fail.
+func TestRun_OkFalseWithNothingFails(t *testing.T) {
+	d := goodDriver()
+	e := Envelope{SchemaVersion: "1.0", Command: "lifecycle status", OK: false, Exit: 5}
+	b, _ := json.Marshal(e)
+	d.envelopes["lifecycle status"] = RawResult{Stdout: b, Exit: 5}
+	rep := Run(context.Background(), d.runner(), "local")
+	mustFail(t, rep, "status: envelope")
+}
+
 func TestRun_NotJSON(t *testing.T) {
 	d := goodDriver()
 	d.envelopes["meta caps"] = RawResult{Stdout: []byte("not json"), Exit: 0}
