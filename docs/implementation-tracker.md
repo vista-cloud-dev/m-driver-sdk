@@ -48,7 +48,7 @@ the shared shape/seam each milestone needs (defined once, consumed by both drive
 | **M5** | `cover` (trace → LCOV) | ◐ `CoverResult` (lcov/coveredLines/totalLines/linePercent) defined on `coordination`, untagged | ☐ | ☐ |
 | **M6** | `admin` (backup/restore/check/journal) | ☐ neutral result shape TBD | ☐ | ☐ |
 | **M7** | `native` passthrough (full backend surface) | — (per-engine; not in contract) | ☐ | ☐ |
-| **M8** | conformance green on all transports + CI matrix | ☐ `m-driver-conformance` (component D5) | ☐ | ☐ |
+| **M8** | conformance green on all transports + CI matrix | ◐ `conformance` pkg + `cmd/m-driver-conformance` (D5) built, unit-green | ◐ 15/16 (caps+version+status pass; doctor envelope/exit finding) | ☑ **16/16 live vs m-test-iris** (after version fix) |
 
 Per-driver critical path: **M0 → M1 → M2(staging) → M3 → M5 → M8**; M4/M6 after M3; M7 any time
 after M0. (m-ydb: no `remote`. m-iris: `remote` attach-mode — provision/destroy unsupported there.)
@@ -109,6 +109,25 @@ blocks ssh/docker). NEXT: **M5 cover** (`view "TRACE":1:"^ycov"`→LCOV; port m-
 bare-name `--filter`; regroup is done) and **M3 exec** (wire run/eval/abort onto the proven remote
 runner substrate; also build local/docker `iris session` transports). Granular tasks: plan §5.
 Open: PR #1 (m-iris-driver → main) — merge when ready.
+
+**m-driver-conformance (D5 / M8) — STARTED 2026-06-11 (VSL effort).** The executable
+contract gate (`conformance` pkg + `cmd/m-driver-conformance`) drives a driver *binary*
+over the subprocess+JSON seam (`m-<engine> <axis> <verb> --output json`) and asserts:
+envelope discipline (schemaVersion/command/exit-ladder/`ok⟺exit==0`/envelope.exit==process
+exit/error-on-fail), caps honesty (contract major, transports incl. tested one,
+`features.remote`⟺transports, meta self-lists caps+version, no present-but-empty axis),
+version↔caps engine/contract cross-check, doctor (exit 0/5/6 + checks), lifecycle status
+(healthy⇒running). Caps-driven (only advertised verbs), stdlib-only (SDK stays dep-free),
+Runner seam (unit tests use canned envelopes). **Unit-green; live-proven — it caught two
+real drifts on first run:** (1) m-iris `meta version` lacked engine/contract (FIXED → 16/16
+live vs m-test-iris); (2) **OPEN:** m-ydb `meta doctor` (unreachable) emits a stdout
+envelope `exit:0` while the process exits 6 — a shared **clikit** limitation: `cc.Result`
+always writes `{ok:true,exit:0}` to stdout and `Fail` writes the error envelope to *stderr*,
+so any "data + non-zero exit" verb (doctor-unreachable, `lint`/`roundtrip`/`status` drift)
+has the mismatch. Fix = a clikit `Result`-with-exit path, applied byte-identically across
+m-ydb/m-iris/m-cli (deferred — coordinated clikit change). NEXT: wire conformance into both
+drivers' `make conformance`/`meta selftest` + the m-cli surface; add live-engine verb
+exercise (exec/data round-trips) as v2.
 
 **m-driver-sdk (orchestrator)** — M5 (LCOV) shared shape **DONE on `coordination`** (untagged):
 `CoverResult{lcov,coveredLines,totalLines,linePercent}` in `cover.go` (contract §5.5), gates green
