@@ -10,11 +10,14 @@ three repos must reconcile here: when you land work, update the tables below in 
 > first, both drivers pin the same SDK version, and every stage is validated against BOTH real
 > engines.
 
-Last reconciled: **2026-06-11** (m-ydb gained a **remote (SSH) transport** + public
-`ydbdriver` facade for the VSL/`VistaEngine` effort — reverses the old YDB-no-remote
-stance, contract §3 amended; NO SDK change, reuses frozen `Transport`/`TransportRemote`
-v0.2.0; m-ydb unit-green, live SSH gate PENDING). Prior: 2026-06-06 (SDK M5
-`CoverResult` defined on `coordination`, untagged — staged for v0.3.0).
+Last reconciled: **2026-06-12** (the reference engine **`Client`** + driver-binary
+**`Locate`** lifted from m-cli's `internal/driver` into the SDK — fulfills waterline
+rule 3 "the engine Client lives in m-driver-sdk; m-cli and every `v` tool import it";
+staged for v0.3.0 on `coordination`. Also fixed a pre-existing conformance bug:
+`null` data (a nil `json.RawMessage` round-trips to `null`) was not counted as empty,
+so the `ok=false` "neither error nor data" check never fired). Prior: 2026-06-11 (m-ydb
+**remote (SSH) transport** + `ydbdriver` facade; NO SDK change). Prior: 2026-06-06 (SDK
+M5 `CoverResult` defined on `coordination`, untagged — staged for v0.3.0).
 
 Legend: ☑ done · ◐ in progress / partial · ☐ not started · — n/a · 🔒 gated (needs a resource)
 
@@ -68,6 +71,8 @@ after M0. (m-ydb: no `remote`. m-iris: `remote` attach-mode — provision/destro
 | `Caps`/`Axes`/`Features`, transport consts, `FakeTransport` | v0.1.0 | `Axes` is struct+omitempty (honest caps) |
 | `Axes.Wired()`, `Check`, `DoctorResult`, `Status`, `StateResult` | **v0.2.0** | M1 doctor + lifecycle payloads |
 | `CoverResult` (lcov/coveredLines/totalLines/linePercent) | **v0.3.0 (staged)** | M5 cover payload (contract §5.5); on `coordination`, untagged. No new Transport verb — driver composes `Exec`+`ReadGlobal` |
+| `Client`/`NewClient`, `CmdRunner`/`ExecRunner` | **v0.3.0 (staged)** | the reference engine client (subprocess + JSON-envelope seam): `<axis> <verb> --transport <t> [conn] --output json`. `Status`/`Caps`/`ExecEval`/`ExecRun`/`Load`. Lifted from m-cli's `internal/driver` (waterline rule 3 — the seam's transport monopoly). On `coordination`, untagged |
+| `Locate`/`LocateDeps`/`DefaultLocateDeps` | **v0.3.0 (staged)** | driver-binary resolution (contract §4 order: `$M_<ENGINE>_BIN` → next to exe → sibling `dist/` → PATH). Lifted with `Client`. On `coordination`, untagged |
 | admin result shape | — | **pending (M6)** |
 
 **Versioning / repin protocol:** add types/fields → minor bump; change/remove → major (contract §8).
@@ -127,18 +132,26 @@ process exited 6 — a shared **clikit** limitation (`cc.Result` always wrote
 `clikit.Context.ResultExit(data, exit, text)` (+ `Run` returns `cc.ExitCode()`), applied
 byte-identically across m-ydb/m-iris; doctor now uses it. Conformance rule relaxed to
 "ok=false needs error **or** data" (doctor carries `checks[]`). **Both drivers 16/16**
-(m-ydb local, m-iris remote-live). NEXT: apply the same clikit copy to m-cli at D3; wire
-conformance into both drivers' `make`/`meta selftest`; add live-engine verb exercise
-(exec/data round-trips) as v2.
+(m-ydb local, m-iris remote-live). **Fix 2026-06-12:** the "ok=false needs error or data"
+rule treated a `null` data field as present (a nil `json.RawMessage` marshals to `null`, 4
+bytes), so a bare `ok=false` envelope wrongly passed — `TestRun_OkFalseWithNothingFails` was
+RED on `coordination`. Now `isBlankJSON` counts `null`/blank as empty; suite green. NEXT: apply
+the same clikit copy to m-cli at D3; wire conformance into both drivers' `make`/`meta selftest`;
+add live-engine verb exercise (exec/data round-trips) as v2.
 
 **m-driver-sdk (orchestrator)** — M5 (LCOV) shared shape **DONE on `coordination`** (untagged):
 `CoverResult{lcov,coveredLines,totalLines,linePercent}` in `cover.go` (contract §5.5), gates green
 (`go test -race`, vet, gofmt). No new Transport verb — `cover trace` composes the existing
-`Exec`+`ReadGlobal` (YDB `view "TRACE"`→`zwrite ^ycov`; IRIS monitor→runner). NEXT (user-gated
-release ceremony): merge `coordination`→`main`, `git tag v0.3.0` + push tag, then repin BOTH drivers
-(`go get …@v0.3.0` → tidy → test) — this unblocks **M5 cover** on m-ydb and m-iris. Still pending:
-define the M6 (admin) shape when that milestone starts; keep this tracker + the contract reconciled;
-own `m-driver-conformance` (D5).
+`Exec`+`ReadGlobal` (YDB `view "TRACE"`→`zwrite ^ycov`; IRIS monitor→runner). **Reference `Client`
+lifted in (2026-06-12, on `coordination`, untagged):** `client.go` + `locate.go` (+ tests) moved from
+m-cli's `internal/driver` so the engine client homes in the SDK per waterline rule 3 — m-cli and every
+`v` tool now import `mdriver.Client`/`mdriver.Locate` instead of vendoring transport. Pure lift (logic
+unchanged); gates green. Also fixed a pre-existing conformance `null`-data bug (see D5 below). NEXT
+(user-gated release ceremony): merge `coordination`→`main`, `git tag v0.3.0` + push tag, then (a) repin
+BOTH drivers (`go get …@v0.3.0` → tidy → test) — unblocks **M5 cover** on m-ydb and m-iris — and (b)
+migrate m-cli off `internal/driver` onto `mdriver.Client` (delete the copy, repin to v0.3.0). Still
+pending: define the M6 (admin) shape when that milestone starts; keep this tracker + the contract
+reconciled; own `m-driver-conformance` (D5).
 
 ---
 

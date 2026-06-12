@@ -134,8 +134,10 @@ func (s *suite) call(ctx context.Context, label string, args ...string) *Envelop
 	}
 	// A non-ok envelope must explain itself — via an error object (the Fail path)
 	// OR a data payload (the doctor/lint "data + non-zero exit" report). Bare
-	// ok=false with neither is unexplained.
-	if !env.OK && env.Error == nil && len(env.Data) == 0 {
+	// ok=false with neither is unexplained. A JSON `null` data field (how a nil
+	// RawMessage round-trips, since the envelope's data has no omitempty) counts
+	// as no data.
+	if !env.OK && env.Error == nil && isBlankJSON(env.Data) {
 		problems = append(problems, "ok=false but neither error nor data")
 	}
 	if len(problems) > 0 {
@@ -144,6 +146,13 @@ func (s *suite) call(ctx context.Context, label string, args ...string) *Envelop
 		s.pass(label + ": envelope")
 	}
 	return &env
+}
+
+// isBlankJSON reports whether a RawMessage carries no payload: empty, all
+// whitespace, or a literal `null` (a nil json.RawMessage marshals to `null`).
+func isBlankJSON(r json.RawMessage) bool {
+	t := bytes.TrimSpace(r)
+	return len(t) == 0 || string(t) == "null"
 }
 
 func (s *suite) checkCaps(ctx context.Context) {
