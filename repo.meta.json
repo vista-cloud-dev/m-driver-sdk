@@ -1,0 +1,9 @@
+{
+  "id": "tool:m-driver-sdk",
+  "repo": "https://github.com/vista-cloud-dev/m-driver-sdk",
+  "role": "M engine-driver SDK — the seam contract + reference engine Client (mdriver.Client)",
+  "language": ["go"],
+  "layer": "m",
+  "license": "AGPL-3.0",
+  "verification_commands": ["go test ./...", "./dist/m arch check ."]
+}
