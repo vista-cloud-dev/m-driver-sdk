@@ -18,8 +18,8 @@ status and the protocols that keep m-ydb + m-iris parallel and consistent live h
 
 - [`docs/implementation-tracker.md`](docs/implementation-tracker.md) — the single source of truth
   for per-repo, per-milestone status. Reconcile it on every cross-repo change.
-- [`docs/prompts/continue-implementation.md`](docs/prompts/continue-implementation.md) — paste into
-  a fresh session to resume work.
+- [`docs/archive/continue-implementation.md`](docs/archive/continue-implementation.md) — archived
+  kickoff prompt; paste into a fresh session to resume work.
 
 ## What's in it
 

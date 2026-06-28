@@ -163,7 +163,7 @@ the contract reconciled; own `m-driver-conformance` (D5).
    green → `go test -race`. No implementation before a failing test.
 2. **Dual-engine real validation each stage** — after a milestone slice, run that driver's gated
    real-engine tier (`make test-it`) against BOTH real engines and add gated tests for new verbs.
-   See [`docs/prompts/continue-implementation.md`](prompts/continue-implementation.md) for the
+   See [`docs/archive/continue-implementation.md`](archive/continue-implementation.md) for the
    container setup. Unit tests use fakes; reality is the gate.
 3. **Shared shapes live in the SDK** — any JSON/result shape m-cli reads from BOTH drivers is
    defined once in `mdriver`, then consumed (drivers may alias). Never hand-duplicate divergently.
@@ -180,7 +180,7 @@ the contract reconciled; own `m-driver-conformance` (D5).
   (v1.0), `driver-implementation-plan.md` (§4 m-ydb, §5 m-iris tracking), `engine-command-survey.md`,
   `driver-plan-risk-assessment.md`, `phase-0-reconciliation.md`.
 - This SDK repo: `README.md` (SDK overview), `docs/implementation-tracker.md` (this file),
-  `docs/prompts/continue-implementation.md` (fresh-session kickoff).
+  `docs/archive/continue-implementation.md` (archived fresh-session kickoff).
 - Session memory (auto-loaded): `m-engine-drivers-consistency-protocol`,
   `m-engine-drivers-real-engine-testing`, `m-driver-sdk-phase0`, `m-ydb-driver-m0`,
   `m-iris-driver-m0-spike`.
